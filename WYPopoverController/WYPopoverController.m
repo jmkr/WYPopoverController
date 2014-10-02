@@ -670,6 +670,7 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
 @property (nonatomic, assign) float  innerCornerRadius;
 
 @property (nonatomic, assign) float  navigationBarHeight;
+@property (nonatomic, assign) float  toolbarHeight;
 @property (nonatomic, assign) BOOL     wantsDefaultContentAppearance;
 @property (nonatomic, assign) float  borderWidth;
 
@@ -695,6 +696,7 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
 @synthesize innerCornerRadius;
 
 @synthesize navigationBarHeight;
+@synthesize toolbarHeight;
 @synthesize wantsDefaultContentAppearance;
 @synthesize borderWidth;
 
@@ -899,6 +901,7 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
 
 @property (nonatomic, strong, readonly) UIView *contentView;
 @property (nonatomic, assign, readonly) float navigationBarHeight;
+@property (nonatomic, assign, readonly) float toolbarHeight;
 @property (nonatomic, assign, readonly) UIEdgeInsets outerShadowInsets;
 @property (nonatomic, assign) float arrowOffset;
 @property (nonatomic, assign) BOOL wantsDefaultContentAppearance;
@@ -955,6 +958,7 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
 @synthesize contentView;
 @synthesize arrowOffset;
 @synthesize navigationBarHeight;
+@synthesize toolbarHeight;
 @synthesize wantsDefaultContentAppearance;
 
 @synthesize outerShadowInsets;
@@ -987,27 +991,6 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
     
     return self;
 }
-
-/*
-- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event
-{
-    BOOL result = [super pointInside:point withEvent:event];
-    
-    if (self.isAppearing == NO)
-    {
-        BOOL isTouched = [self isTouchedAtPoint:point];
-        
-        if (isTouched == NO && UIAccessibilityIsVoiceOverRunning())
-        {
-            UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, nil);
-            UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, NSLocalizedString(@"Double-tap to dismiss pop-up window.", nil));
-        }
-    }
-    
-    return result;
-}
-*/
-
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
@@ -1090,11 +1073,13 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
     [self addSubview:contentView];
     
     navigationBarHeight = 0;
+	toolbarHeight = 0;
     
     if ([viewController isKindOfClass:[UINavigationController class]])
     {
         UINavigationController* navigationController = (UINavigationController*)viewController;
         navigationBarHeight = navigationController.navigationBar.bounds.size.height;
+		toolbarHeight = navigationController.toolbar.bounds.size.height;
     }
     
     contentView.frame = CGRectIntegral([self innerRect]);
@@ -1115,6 +1100,7 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
     }
     
     innerView.navigationBarHeight = navigationBarHeight;
+	innerView.toolbarHeight = toolbarHeight;
     innerView.gradientHeight = self.frame.size.height - 2 * outerShadowBlurRadius;
     innerView.gradientTopPosition = contentView.frame.origin.y - self.outerShadowInsets.top;
     innerView.wantsDefaultContentAppearance = wantsDefaultContentAppearance;
@@ -1137,6 +1123,9 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
     {
         result.height += borderWidth;
     }
+	
+	if (toolbarHeight != 0)
+		result.height += toolbarHeight;
     
     if (arrowDirection == WYPopoverArrowDirectionUp || arrowDirection == WYPopoverArrowDirectionDown)
     {
@@ -1177,6 +1166,7 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
         innerView.borderWidth = self.borderWidth;
         
         innerView.navigationBarHeight = navigationBarHeight;
+		innerView.toolbarHeight = toolbarHeight;
         innerView.gradientHeight = self.frame.size.height - 2 * outerShadowBlurRadius;
         innerView.gradientTopPosition = contentView.frame.origin.y - self.outerShadowInsets.top;
         innerView.wantsDefaultContentAppearance = wantsDefaultContentAppearance;
@@ -1963,6 +1953,7 @@ static WYPopoverTheme *defaultTheme_ = nil;
             }
             
             strongSelf->backgroundView.appearing = NO;
+			[self updateForContentSize];
         }
         
         if (completion)
@@ -2227,7 +2218,9 @@ static WYPopoverTheme *defaultTheme_ = nil;
     CGRect containerFrame = CGRectZero;
     float minX, maxX, minY, maxY, offset = 0;
     CGSize containerViewSize = CGSizeZero;
-    
+	
+	NSLog(@"%s - overlayView bounds1: %@", __PRETTY_FUNCTION__, NSStringFromCGRect(overlayView.bounds));
+	
     float overlayWidth = UIInterfaceOrientationIsPortrait(orientation) ? overlayView.bounds.size.width : overlayView.bounds.size.height;
     float overlayHeight = UIInterfaceOrientationIsPortrait(orientation) ? overlayView.bounds.size.height : overlayView.bounds.size.width;
     
@@ -2245,9 +2238,12 @@ static WYPopoverTheme *defaultTheme_ = nil;
     
     overlayView.bounds = inView.window.bounds;
     backgroundView.transform = CGAffineTransformIdentity;
-    
+	
+	NSLog(@"%s - overlayView bounds2: %@", __PRETTY_FUNCTION__, NSStringFromCGRect(overlayView.bounds));
+	
     viewFrame = [inView convertRect:rect toView:nil];
-    
+	
+	NSLog(@"%s - %@", __PRETTY_FUNCTION__, NSStringFromCGRect(viewFrame));
     viewFrame = WYRectInWindowBounds(viewFrame, orientation);
     
     minX = popoverLayoutMargins.left;
@@ -2539,6 +2535,7 @@ static WYPopoverTheme *defaultTheme_ = nil;
     }
     
     WY_LOG(@"popoverContainerView.frame = %@", NSStringFromCGRect(backgroundView.frame));
+	NSLog(@"popoverContainerView.frame = %@", NSStringFromCGRect(backgroundView.frame));
 }
 
 - (void)dismissPopoverAnimated:(BOOL)aAnimated
@@ -2546,6 +2543,15 @@ static WYPopoverTheme *defaultTheme_ = nil;
     [self dismissPopoverAnimated:aAnimated
                          options:options
                       completion:nil];
+}
+
+- (void)dismissPopoverAnimated:(BOOL)aAnimated
+				  callDelegate:(BOOL)callDelegate
+{
+	[self dismissPopoverAnimated:aAnimated
+						 options:options
+					  completion:nil
+					callDelegate:callDelegate];
 }
 
 - (void)dismissPopoverAnimated:(BOOL)aAnimated
@@ -2701,14 +2707,20 @@ static WYPopoverTheme *defaultTheme_ = nil;
         if ([keyPath isEqualToString:NSStringFromSelector(@selector(preferredContentSize))]
             || [keyPath isEqualToString:NSStringFromSelector(@selector(contentSizeForViewInPopover))])
         {
-            CGSize contentSize = [self topViewControllerContentSize];
-            [self setPopoverContentSize:contentSize];
+			[self updateForContentSize];
         }
     }
     else if (object == theme)
     {
         [self updateThemeUI];
     }
+}
+
+- (void)updateForContentSize
+{
+	CGSize contentSize = [self topViewControllerContentSize];
+	if (CGSizeEqualToSize(contentSize, self.popoverContentSize))
+		[self setPopoverContentSize:contentSize];
 }
 
 #pragma mark WYPopoverOverlayViewDelegate
