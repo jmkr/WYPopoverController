@@ -38,6 +38,14 @@
     #define WY_POPOVER_MIN_SIZE                      CGSizeMake(240, 160)
 #endif
 
+#ifndef WY_POPOVER_DEFAULT_SPRING_DAMPING_RATIO
+    #define WY_POPOVER_DEFAULT_SPRING_DAMPING_RATIO  .6f;
+#endif
+
+#ifndef WY_POPOVER_DEFAULT_SPRING_INITIAL_VELOCITY
+    #define WY_POPOVER_DEFAULT_SPRING_INITIAL_VELOCITY .3f;
+#endif
+
 typedef NS_OPTIONS(NSUInteger, WYPopoverArrowDirection) {
     WYPopoverArrowDirectionUp = 1UL << 0,
     WYPopoverArrowDirectionDown = 1UL << 1,
@@ -51,7 +59,8 @@ typedef NS_OPTIONS(NSUInteger, WYPopoverArrowDirection) {
 typedef NS_OPTIONS(NSUInteger, WYPopoverAnimationOptions) {
     WYPopoverAnimationOptionFade = 1UL << 0,            // default
     WYPopoverAnimationOptionScale = 1UL << 1,
-    WYPopoverAnimationOptionFadeWithScale = WYPopoverAnimationOptionFade | WYPopoverAnimationOptionScale
+    WYPopoverAnimationOptionFadeWithScale = WYPopoverAnimationOptionFade | WYPopoverAnimationOptionScale,
+    WYPopoverAnimationOptionSpring = 1UL << 2 | WYPopoverAnimationOptionFade | WYPopoverAnimationOptionScale
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,6 +113,8 @@ typedef NS_OPTIONS(NSUInteger, WYPopoverAnimationOptions) {
 @property (nonatomic, strong, readonly) UIViewController       *contentViewController;
 @property (nonatomic, assign) CGSize                            popoverContentSize;
 @property (nonatomic, assign) float                             animationDuration;
+@property (nonatomic, assign) float                             springDampingRatio;
+@property (nonatomic, assign) float                             springInitialVelocity;
 
 @property (nonatomic, strong) WYPopoverTheme                   *theme;
 

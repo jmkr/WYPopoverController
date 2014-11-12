@@ -1644,6 +1644,8 @@ static float edgeSizeFromCornerRadius(float cornerRadius) {
 @synthesize popoverLayoutMargins;
 @synthesize popoverContentSize = popoverContentSize_;
 @synthesize animationDuration;
+@synthesize springDampingRatio;
+@synthesize springInitialVelocity;
 @synthesize theme;
 
 static WYPopoverTheme *defaultTheme_ = nil;
@@ -1702,6 +1704,8 @@ static WYPopoverTheme *defaultTheme_ = nil;
         popoverLayoutMargins = UIEdgeInsetsMake(10, 10, 10, 10);
         keyboardRect = CGRectZero;
         animationDuration = WY_POPOVER_DEFAULT_ANIMATION_DURATION;
+        springDampingRatio = WY_POPOVER_DEFAULT_SPRING_DAMPING_RATIO;
+        springInitialVelocity = WY_POPOVER_DEFAULT_SPRING_INITIAL_VELOCITY;
         
         themeUpdatesEnabled = NO;
         
@@ -2072,19 +2076,38 @@ static WYPopoverTheme *defaultTheme_ = nil;
             backgroundView.transform = startTransform;
         }
         
-        [UIView animateWithDuration:animationDuration animations:^{
-            __typeof__(self) strongSelf = weakSelf;
-            
-            if (strongSelf)
-            {
-                strongSelf->overlayView.alpha = 1;
-                strongSelf->backgroundView.alpha = 1;
-                strongSelf->backgroundView.transform = endTransform;
-            }
-            adjustTintDimmed();
-        } completion:^(BOOL finished) {
-            completionBlock(YES);
-        }];
+        if ((options & WYPopoverAnimationOptionSpring) == WYPopoverAnimationOptionSpring)
+        {
+            [UIView animateWithDuration:animationDuration delay:0.0 usingSpringWithDamping:springDampingRatio initialSpringVelocity:springInitialVelocity options:UIViewAnimationOptionCurveLinear animations:^{
+                __typeof__(self) strongSelf = weakSelf;
+
+                if (strongSelf)
+                {
+                    strongSelf->overlayView.alpha = 1;
+                    strongSelf->backgroundView.alpha = 1;
+                    strongSelf->backgroundView.transform = endTransform;
+                }
+                adjustTintDimmed();
+            } completion:^(BOOL finished) {
+                completionBlock(YES);
+            }];
+        }
+        else
+        {
+            [UIView animateWithDuration:animationDuration animations:^{
+                __typeof__(self) strongSelf = weakSelf;
+
+                if (strongSelf)
+                {
+                    strongSelf->overlayView.alpha = 1;
+                    strongSelf->backgroundView.alpha = 1;
+                    strongSelf->backgroundView.transform = endTransform;
+                }
+                adjustTintDimmed();
+            } completion:^(BOOL finished) {
+                completionBlock(YES);
+            }];
+        }
     }
     else
     {
@@ -2747,27 +2770,54 @@ static WYPopoverTheme *defaultTheme_ = nil;
     
     if (aAnimated)
     {
-        [UIView animateWithDuration:duration animations:^{
-            __typeof__(self) strongSelf = weakSelf;
-            
-            if (strongSelf)
-            {
-                if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
+        if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
+        {
+            [UIView animateWithDuration:duration delay:0.0 usingSpringWithDamping:springDampingRatio initialSpringVelocity:springInitialVelocity options:UIViewAnimationOptionCurveEaseInOut animations:^{
+                __typeof__(self) strongSelf = weakSelf;
+
+                if (strongSelf)
                 {
-                    strongSelf->backgroundView.alpha = 0;
+                    if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
+                    {
+                        strongSelf->backgroundView.alpha = 0;
+                    }
+
+                    if ((style & WYPopoverAnimationOptionScale) == WYPopoverAnimationOptionScale)
+                    {
+                        CGAffineTransform endTransform = [self transformForArrowDirection:strongSelf->backgroundView.arrowDirection];
+                        strongSelf->backgroundView.transform = endTransform;
+                    }
+                    strongSelf->overlayView.alpha = 0;
                 }
-                
-                if ((style & WYPopoverAnimationOptionScale) == WYPopoverAnimationOptionScale)
+                adjustTintAutomatic();
+            } completion:^(BOOL finished) {
+                completionBlock();
+            }];
+        }
+        else
+        {
+            [UIView animateWithDuration:duration animations:^{
+                __typeof__(self) strongSelf = weakSelf;
+
+                if (strongSelf)
                 {
-                    CGAffineTransform endTransform = [self transformForArrowDirection:strongSelf->backgroundView.arrowDirection];
-                    strongSelf->backgroundView.transform = endTransform;
+                    if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
+                    {
+                        strongSelf->backgroundView.alpha = 0;
+                    }
+
+                    if ((style & WYPopoverAnimationOptionScale) == WYPopoverAnimationOptionScale)
+                    {
+                        CGAffineTransform endTransform = [self transformForArrowDirection:strongSelf->backgroundView.arrowDirection];
+                        strongSelf->backgroundView.transform = endTransform;
+                    }
+                    strongSelf->overlayView.alpha = 0;
                 }
-                strongSelf->overlayView.alpha = 0;
-            }
-            adjustTintAutomatic();
-        } completion:^(BOOL finished) {
-            completionBlock();
-        }];
+                adjustTintAutomatic();
+            } completion:^(BOOL finished) {
+                completionBlock();
+            }];
+        }
     }
     else
     {
