@@ -508,7 +508,7 @@ static char const * const UINavigationControllerEmbedInPopoverTagKey = "UINaviga
     result.innerShadowOffset = CGSizeZero;
     result.innerCornerRadius = 0;
     result.viewContentInsets = UIEdgeInsetsZero;
-    result.overlayColor = [UIColor colorWithWhite:0 alpha:0.2];
+    result.overlayColor = [UIColor colorWithWhite:0 alpha:0.7];
     
     return result;
 }
