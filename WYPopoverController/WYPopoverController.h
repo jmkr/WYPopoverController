@@ -26,6 +26,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import "UIImageEffects.h"
 
 @protocol WYPopoverControllerDelegate;
 @class WYPopoverTheme;
@@ -60,7 +61,8 @@ typedef NS_OPTIONS(NSUInteger, WYPopoverAnimationOptions) {
     WYPopoverAnimationOptionFade = 1UL << 0,            // default
     WYPopoverAnimationOptionScale = 1UL << 1,
     WYPopoverAnimationOptionFadeWithScale = WYPopoverAnimationOptionFade | WYPopoverAnimationOptionScale,
-    WYPopoverAnimationOptionSpring = 1UL << 2 | WYPopoverAnimationOptionFade | WYPopoverAnimationOptionScale
+    WYPopoverAnimationOptionSpring = 1UL << 2 | WYPopoverAnimationOptionFade | WYPopoverAnimationOptionScale,
+    WYPopoverAnimationOptionSpringWithBlur = 1UL << 3 | WYPopoverAnimationOptionSpring
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

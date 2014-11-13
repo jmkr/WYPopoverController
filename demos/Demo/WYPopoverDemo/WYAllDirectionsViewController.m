@@ -126,7 +126,7 @@
         if (sender == dialogButton)
         {
             [settingsPopoverController presentPopoverAsDialogAnimated:YES
-                                                              options:WYPopoverAnimationOptionFadeWithScale];
+                                                              options:WYPopoverAnimationOptionSpringWithBlur];
         }
         else
         {

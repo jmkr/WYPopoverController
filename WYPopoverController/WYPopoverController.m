@@ -508,7 +508,7 @@ static char const * const UINavigationControllerEmbedInPopoverTagKey = "UINaviga
     result.innerShadowOffset = CGSizeZero;
     result.innerCornerRadius = 0;
     result.viewContentInsets = UIEdgeInsetsZero;
-    result.overlayColor = [UIColor colorWithWhite:0 alpha:0.15];
+    result.overlayColor = [UIColor colorWithWhite:0 alpha:0.2];
     
     return result;
 }
@@ -1985,7 +1985,15 @@ static WYPopoverTheme *defaultTheme_ = nil;
         overlayView.autoresizesSubviews = NO;
         overlayView.delegate = self;
         overlayView.passthroughViews = passthroughViews;
-        
+
+        if ((options & WYPopoverAnimationOptionSpringWithBlur) == WYPopoverAnimationOptionSpringWithBlur)
+        {
+            overlayView.backgroundColor = [UIColor colorWithWhite:0 alpha:1.0];
+            UIImageView *bgImageView = [[UIImageView alloc] initWithFrame:inView.window.bounds];
+            bgImageView.image = [self blurredSnapshot];
+            [overlayView addSubview:bgImageView];
+        }
+
         backgroundView = [[WYPopoverBackgroundView alloc] initWithContentSize:contentViewSize];
         backgroundView.appearing = YES;
         
@@ -2075,36 +2083,34 @@ static WYPopoverTheme *defaultTheme_ = nil;
             CGAffineTransform startTransform = [self transformForArrowDirection:backgroundView.arrowDirection];
             backgroundView.transform = startTransform;
         }
-        
+
+        void (^animationBlock)() = ^() {
+            __typeof__(self) strongSelf = weakSelf;
+
+            if (strongSelf)
+            {
+                strongSelf->overlayView.alpha = 1;
+                strongSelf->backgroundView.alpha = 1;
+                strongSelf->backgroundView.transform = endTransform;
+            }
+            adjustTintDimmed();
+        };
+
         if ((options & WYPopoverAnimationOptionSpring) == WYPopoverAnimationOptionSpring)
         {
-            [UIView animateWithDuration:animationDuration delay:0.0 usingSpringWithDamping:springDampingRatio initialSpringVelocity:springInitialVelocity options:UIViewAnimationOptionCurveLinear animations:^{
-                __typeof__(self) strongSelf = weakSelf;
-
-                if (strongSelf)
-                {
-                    strongSelf->overlayView.alpha = 1;
-                    strongSelf->backgroundView.alpha = 1;
-                    strongSelf->backgroundView.transform = endTransform;
-                }
-                adjustTintDimmed();
-            } completion:^(BOOL finished) {
-                completionBlock(YES);
-            }];
+            [UIView animateWithDuration:animationDuration
+                                  delay:0.0
+                 usingSpringWithDamping:springDampingRatio
+                  initialSpringVelocity:springInitialVelocity
+                                options:UIViewAnimationOptionCurveLinear
+                             animations:animationBlock
+                             completion:^(BOOL finished) {
+                                 completionBlock(YES);
+                             }];
         }
         else
         {
-            [UIView animateWithDuration:animationDuration animations:^{
-                __typeof__(self) strongSelf = weakSelf;
-
-                if (strongSelf)
-                {
-                    strongSelf->overlayView.alpha = 1;
-                    strongSelf->backgroundView.alpha = 1;
-                    strongSelf->backgroundView.transform = endTransform;
-                }
-                adjustTintDimmed();
-            } completion:^(BOOL finished) {
+            [UIView animateWithDuration:animationDuration animations:animationBlock completion:^(BOOL finished) {
                 completionBlock(YES);
             }];
         }
@@ -2770,51 +2776,42 @@ static WYPopoverTheme *defaultTheme_ = nil;
     
     if (aAnimated)
     {
-        if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
-        {
-            [UIView animateWithDuration:duration delay:0.0 usingSpringWithDamping:springDampingRatio initialSpringVelocity:springInitialVelocity options:UIViewAnimationOptionCurveEaseInOut animations:^{
-                __typeof__(self) strongSelf = weakSelf;
+        void (^animationBlock)() = ^() {
+            __typeof__(self) strongSelf = weakSelf;
 
-                if (strongSelf)
+            if (strongSelf)
+            {
+                if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
                 {
-                    if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
-                    {
-                        strongSelf->backgroundView.alpha = 0;
-                    }
-
-                    if ((style & WYPopoverAnimationOptionScale) == WYPopoverAnimationOptionScale)
-                    {
-                        CGAffineTransform endTransform = [self transformForArrowDirection:strongSelf->backgroundView.arrowDirection];
-                        strongSelf->backgroundView.transform = endTransform;
-                    }
-                    strongSelf->overlayView.alpha = 0;
+                    strongSelf->backgroundView.alpha = 0;
                 }
-                adjustTintAutomatic();
-            } completion:^(BOOL finished) {
-                completionBlock();
-            }];
+
+                if ((style & WYPopoverAnimationOptionScale) == WYPopoverAnimationOptionScale)
+                {
+                    CGAffineTransform endTransform = [self transformForArrowDirection:strongSelf->backgroundView.arrowDirection];
+                    strongSelf->backgroundView.transform = endTransform;
+                }
+                strongSelf->overlayView.alpha = 0;
+            }
+            adjustTintAutomatic();
+        };
+
+
+        if ((style & WYPopoverAnimationOptionSpring) == WYPopoverAnimationOptionSpring)
+        {
+            [UIView animateWithDuration:duration
+                                  delay:0.0
+                 usingSpringWithDamping:springDampingRatio
+                  initialSpringVelocity:springInitialVelocity
+                                options:UIViewAnimationOptionCurveEaseInOut
+                             animations:animationBlock
+                             completion:^(BOOL finished) {
+                                 completionBlock();
+                             }];
         }
         else
         {
-            [UIView animateWithDuration:duration animations:^{
-                __typeof__(self) strongSelf = weakSelf;
-
-                if (strongSelf)
-                {
-                    if ((style & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
-                    {
-                        strongSelf->backgroundView.alpha = 0;
-                    }
-
-                    if ((style & WYPopoverAnimationOptionScale) == WYPopoverAnimationOptionScale)
-                    {
-                        CGAffineTransform endTransform = [self transformForArrowDirection:strongSelf->backgroundView.arrowDirection];
-                        strongSelf->backgroundView.transform = endTransform;
-                    }
-                    strongSelf->overlayView.alpha = 0;
-                }
-                adjustTintAutomatic();
-            } completion:^(BOOL finished) {
+            [UIView animateWithDuration:duration animations:animationBlock completion:^(BOOL finished) {
                 completionBlock();
             }];
         }
@@ -3215,6 +3212,28 @@ static CGPoint WYPointRelativeToOrientation(CGPoint origin, CGSize size, UIInter
     }
     
     return result;
+}
+
+#pragma mark Image Grab
+
+- (UIImage *)blurredSnapshot
+{
+    // Create the image context
+    UIGraphicsBeginImageContextWithOptions(inView.bounds.size, NO, inView.window.screen.scale);
+
+    // There he is! The new API method
+    [inView drawViewHierarchyInRect:inView.frame afterScreenUpdates:NO];
+
+    // Get the snapshot
+    UIImage *snapshotImage = UIGraphicsGetImageFromCurrentImageContext();
+
+    // Now apply the blur effect using Apple's UIImageEffect category
+    UIImage *blurredSnapshotImage = [UIImageEffects imageByApplyingBlurToImage:snapshotImage withRadius:20 tintColor:[UIColor colorWithWhite:0.9 alpha:0.65] saturationDeltaFactor:1.8 maskImage:nil];
+
+    // Be nice and clean your mess up
+    UIGraphicsEndImageContext();
+
+    return blurredSnapshotImage;
 }
 
 #pragma mark Selectors
